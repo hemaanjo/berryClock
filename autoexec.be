@@ -1,7 +1,9 @@
 import persist
 
-var eledes
-var matrix
+var eledes = Leds(16*16,gpio.pin(gpio.WS2812, 0))
+var matrix = eledes.create_matrix(16,16)
+
+
 if !persist.has("allBrightness")
 	persist.allBrightness = 50
 	persist.save()
@@ -55,6 +57,8 @@ end
 matrix.show()
 end
 
+## Text2MT("SOFTWARE WITHOUT CHAT-GPT")
+
 class tpart2mask
 	var tpart09,tpart10
 	def init(tpart,offset,splitAfter)
@@ -103,7 +107,7 @@ matrix.show()
 tasmota.delay(5000)
 matrix.clear()
 
-print("Spalte 1")
+#-print("Spalte 1")
 for j:0..15
   matrix.set_matrix_pixel_color(1,j,0x0000ff,persist.allBrightness)
 end
@@ -118,13 +122,16 @@ for j:0..15
   end
 end
 matrix.show()
+-#
 
 var sec = gettime().sec()
+#-
 print(sec)
 line(9,tpart2mask(sec,3,0).tpart10,0x000000,0x00dd00)
 line(10,tpart2mask(sec,3,0).tpart09,0x000000,0x00dd00)
 
 tasmota.delay(5000)
+-#
 var LastSec=-1
 var timerid
 var OffsetLeft = 3

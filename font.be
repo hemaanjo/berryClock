@@ -76,7 +76,6 @@ var i=0
 #print("Breite=",fontBytes.size())
 #print("Höhe=8") 
 #print("--------") 
-var mask[]
 for j : 0..((8*fontBytes.size())-1)
  if (j % 8) == 0
    if j>0
@@ -101,6 +100,7 @@ end
 
 class Letter2Matrix
 var LC
+var workingLetter
 	def init(zeichen)  #,offset
                 self.LC={0:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
                           1:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
@@ -115,6 +115,7 @@ var LC
     #var currLC = self.LC.find(i)
     var posInLC = 0
     #print("TTT")
+    self.workingLetter = zeichen 
     for j : 0..((8*fontBytes.size())-1)
       if (j % 8) == 0
         if j>0
@@ -125,54 +126,98 @@ var LC
         #print(i,self.LC.find(i))
       end
       if str(fontBytes.getbits(j,1))=="1"
-        #print(i,posInLC)        
-        self.LC.find(i)[posInLC]=1
-        #bits = bits + "X"
+         self.LC.find(i)[posInLC]=1
       end 
       posInLC = posInLC + 1
     end
-  end              
+  end
+  
+  def LetterColumn(col)
+    #print(self.workingLetter,col)
+    return self.LC.find(col)
+  end
 end
+
+def defcolumn()
+  var col=[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+  return col
+end
+
+def getcolumn(x)
+	var mask=defcolumn()
+	#print("getcolumn=",x)
+	for j:0..15
+	  var maty
+	  if x % 2
+	   maty=15-j
+	  else
+	   maty=j
+	  end
+	  if eledes.get_pixel_color(x*16+maty) != 0
+		  mask[j]=1
+	  end 
+	end
+	return mask
+end	
+
 
 def Text2MT(text)
 var ttt = "" #Letter2Matrix(text)
 var MATRIXWIDTH = 16
+var CHARWIDTH = 6
 var i = MATRIXWIDTH
-var width = 6 * size(text) - 1
+var textwidth = CHARWIDTH * size(text)
 var splittText = "dummy"
 matrix.clear()
 var TextChars = size(text)-1
-print("TEXTPixelBreite=" , width)
-for txtChar : 0..TextChars
-  print("  txtchar       ",txtChar,size(text)-1)
-  splittText = string.split(text,1)
-  ttt = Letter2Matrix(splittText[0])
-  while i > 0-width 
-    print(i,0-width)
-    for wc : 0..5
-      if (i+wc)>=0 && (i+wc)<MATRIXWIDTH-1
-        column(i+wc,ttt.LC.find(wc),0x000000,0x0000aa)
-        print("col=",i+wc)
-      end  
-    end
-#    text = splittText[1]
-#    if size(text) > 0
-#      print("Rest=" , text)
-#      splittText = string.split(text,1)
-#      ttt = Letter2Matrix(splittText[0])
-#      print("Next Char=",splittText[0])
-     if (i+width+1<MATRIXWIDTH)
-        for empty : i+width+1..MATRIXWIDTH
-         column(empty,[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],0x000000,0x000000)
-        end 
-        end
-#    end
-	  tasmota.delay(persist.QLTypeSpeed)
-    i = i - 1 
+print("TEXTPixelBreite=" , textwidth)
+var run = 0
+var shiftleft = 0
+# hole 1. Buchstaben
+splittText = string.split(text,1) 
+ttt = Letter2Matrix(splittText[0])
+# der Durchlauf des Textes "dauert" textwidth+16
+while run < textwidth+16
+  shiftleft=1
+  # Alle 15-1 eins nach links
+  while shiftleft<16
+    #print("shift",shiftleft-1,"<=",shiftleft)
+    column(shiftleft-1,getcolumn(shiftleft),0x0,0x0000aa)
+    shiftleft = shiftleft+1
+  end 
+  if size(text) > 0
+    column(15,ttt.LetterColumn(run%CHARWIDTH),0x0,0x0000aa)
+  end 
+    run = run + 1
+  matrix.show()
+  #tasmota.delay(1) #persist.QLTypeSpeed)
+  if run%CHARWIDTH == 0 # hole nächsten Buchstaben
+    text = splittText[1]
+    if size(text) > 0
+      splittText = string.split(text,1) 
+      ttt = Letter2Matrix(splittText[0])
+    else
+      run=textwidth+16  
+    end  
   end
-  #text = splittText[1]
+  print(run,textwidth+16)
 end
-column(0,[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],0x000000,0x000000)
+for clear : 0..15
+  shiftleft=1
+  # Alle 15-1 eins nach links
+  while shiftleft<16
+    #print("shift",shiftleft-1,"<=",shiftleft)
+    column(shiftleft-1,getcolumn(shiftleft),0x0,0x0000aa)
+    shiftleft = shiftleft+1
+  end
+  column(15,defcolumn(),0,0) 
+end
+#for txtChar : 0..TextChars
+#  splittText = string.split(text,1)
+#  ttt = Letter2Matrix(splittText[0])
+#  print("---",splittText[0])
+#  text = splittText[1]
+#end
 end #-Text2MT-#
 
 #-
