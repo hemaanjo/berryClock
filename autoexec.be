@@ -1,50 +1,77 @@
+print("load autoexec")
 import persist
 
-var eledes = Leds(16*16,gpio.pin(gpio.WS2812, 0))
-var matrix = eledes.create_matrix(16,16)
-
+# prototypes ;-) eigentliche Instanzen/Objekte in globals
+var eledes
+var matrix
+var Funk
+var cS
+def startup()
+end 
+class getlight
+end
+class gettime
+end
+class clockSeconds
+end 
 
 if !persist.has("allBrightness")
 	persist.allBrightness = 50
 	persist.save()
-end
-
-class getlight
-end
-
-class gettime
+else	
+	print("allBrightness found")
 end
 
 load("globals")
+load("font")
 load("buttons")
 load("Qlock")
 
-def line(y,mask,colh,colf)
+def defcolumn()
+	var col=[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+	return col
+end
+
+def columnidx(x)
+	var idx=defcolumn()
+        var physx = 15 - x 
+        idx[0]=physx
+	for j:1..15
+	  var maty
+	  if j % 2
+	   maty=(j*16+x)
+	  else
+	   maty=(j*16)+physx
+	  end
+	  idx[j]=maty
+	end
+	return idx
+end
+
+def column(y,mask,colh,colf,noshow)
+var cidx=columnidx(y)
 for j:0..15
-  var maty
-  if j % 2
-   maty=15-y
-  else
-   maty=y
-  end
   var col
   if mask[j] == 0
    col=colh
   else
    col=colf
   end
-  matrix.set_matrix_pixel_color(j,maty,col)
+  #matrix.set_matrix_pixel_color(j,cidx[j],col,persist.allBrightness)
+  eledes.set_pixel_color(cidx[j],col,persist.allBrightness)
 end
-matrix.show()
+if noshow==nil
+ matrix.show()
+end
 end
 
-def column(x,mask,colh,colf)
+def line(x,mask,colh,colf)
 for j:0..15
   var maty
   if x % 2
-   maty=15-j
-  else
    maty=j
+  else
+   maty=15-j
   end
   var col
   if mask[j] == 0
@@ -52,7 +79,7 @@ for j:0..15
   else
    col=colf
   end
-  matrix.set_matrix_pixel_color(x,maty,col)
+  matrix.set_matrix_pixel_color(x,maty,col,persist.allBrightness)
 end
 matrix.show()
 end
@@ -90,48 +117,18 @@ class tpart2mask
 	end
 end
 
-def set_timer_modulo(delay,f,id)
-  var now=tasmota.millis()
-  #print(delay)
-  tasmota.set_timer((now+delay/4+delay)/delay*delay-now, def() set_timer_modulo(delay,f,id) f() end, id)
-end
-
-
 matrix.set_alternate(false)
 for i:0..15
  for j:0..15
   matrix.set_matrix_pixel_color(i,j,0xaa0000,persist.allBrightness)
+  matrix.show()
+  tasmota.delay(persist.QLTypeSpeed/4)
  end
 end
-matrix.show()
-tasmota.delay(5000)
+
 matrix.clear()
 
-#-print("Spalte 1")
-for j:0..15
-  matrix.set_matrix_pixel_color(1,j,0x0000ff,persist.allBrightness)
-end
-#set_timer_modulo(1000,showsec,tId)
-
-print("Zeile 3")
-for j:0..15
-  if j % 2
-   matrix.set_matrix_pixel_color(j,15-3,0x00ff00,persist.allBrightness)
-  else
-   matrix.set_matrix_pixel_color(j,3,0x00ff00,persist.allBrightness)
-  end
-end
-matrix.show()
--#
-
 var sec = gettime().sec()
-#-
-print(sec)
-line(9,tpart2mask(sec,3,0).tpart10,0x000000,0x00dd00)
-line(10,tpart2mask(sec,3,0).tpart09,0x000000,0x00dd00)
-
-tasmota.delay(5000)
--#
 var LastSec=-1
 var timerid
 var OffsetLeft = 3
@@ -145,27 +142,25 @@ def blank()
 end
 
 def lichtzeitpegel()
-var col = getlight().rgb
-#var CTime = gettime()
-var Legende = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+	var col = getlight().rgb
+	var Legende = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
 
-Legende[OffsetLeft+0]=1
-Legende[OffsetLeft+1]=1
-Legende[OffsetLeft+4]=1
-Legende[OffsetLeft+5]=1
-Legende[OffsetLeft+8]=1
-Legende[OffsetLeft+9]=1
+	Legende[OffsetLeft+0]=1
+	Legende[OffsetLeft+1]=1
+	Legende[OffsetLeft+4]=1
+	Legende[OffsetLeft+5]=1
+	Legende[OffsetLeft+8]=1
+	Legende[OffsetLeft+9]=1
 
 	orientation(11,tpart2mask(persist.sec,OffsetLeft,5).tpart10,0x000000,col)
 	orientation(12,tpart2mask(persist.sec,OffsetLeft,5).tpart09,0x000000,col)
-	#LastSec = CTime.sec()
 	if LastSec <= 2 
          firstCall +=1
- 	 #print(CTime.hours + ":" + CTime.mins + ":" + CTime.secs)
-	 orientation(7,tpart2mask(persist.min,OffsetLeft,5).tpart10,0x000000,col)
-	 orientation(8,tpart2mask(persist.min,OffsetLeft,5).tpart09,0x000000,col)
-	 orientation(3,tpart2mask(persist.hour,OffsetLeft,5).tpart10,0x000000,col)
-	 orientation(4,tpart2mask(persist.hour,OffsetLeft,5).tpart09,0x000000,col)
+		#print(CTime.hours + ":" + CTime.mins + ":" + CTime.secs)
+		orientation(7,tpart2mask(persist.min,OffsetLeft,5).tpart10,0x000000,col)
+		orientation(8,tpart2mask(persist.min,OffsetLeft,5).tpart09,0x000000,col)
+		orientation(3,tpart2mask(persist.hour,OffsetLeft,5).tpart10,0x000000,col)
+		orientation(4,tpart2mask(persist.hour,OffsetLeft,5).tpart09,0x000000,col)
 	end
 	if orientation==column
 		line(2,Legende,0x000000,getlight().rgb ^ 0x00aa00)
@@ -174,16 +169,48 @@ Legende[OffsetLeft+9]=1
 	end
 end	
 
+#-
 matrix.clear()
-	 orientation(11,tpart2mask(gettime().sec(),OffsetLeft,5).tpart10,0x000000,0x00dd00)
-	 orientation(12,tpart2mask(gettime().sec(),OffsetLeft,5).tpart09,0x000000,0x00dd00)
-	 orientation(7,tpart2mask(gettime().min(),OffsetLeft,5).tpart10,0x000000,0x00dd00)
-	 orientation(8,tpart2mask(gettime().min(),OffsetLeft,5).tpart09,0x000000,0x00dd00)
-	 orientation(3,tpart2mask(gettime().hour(),OffsetLeft,5).tpart10,0x000000,0x00dd00)
-	 orientation(4,tpart2mask(gettime().hour(),OffsetLeft,5).tpart09,0x000000,0x00dd00)
+	 orientation(11,tpart2mask(persist.sec,OffsetLeft,5).tpart10,0x000000,0x00dd00)
+	 orientation(12,tpart2mask(persist.sec,OffsetLeft,5).tpart09,0x000000,0x00dd00)
+	 orientation(7,tpart2mask(persist.min,OffsetLeft,5).tpart10,0x000000,0x00dd00)
+	 orientation(8,tpart2mask(persist.min,OffsetLeft,5).tpart09,0x000000,0x00dd00)
+	 orientation(3,tpart2mask(persist.hour,OffsetLeft,5).tpart10,0x000000,0x00dd00)
+	 orientation(4,tpart2mask(persist.hour,OffsetLeft,5).tpart09,0x000000,0x00dd00)
 print("Licht-Zeit-Pegel ;-)")
+-#
 
 var display = lichtzeitpegel
+
+class wait4time
+ var year1970
+ def init()
+  var testYear = int(gettime().year)
+  self.year1970 = testYear
+ end
+ def funk()
+  #print(Funk)
+  for i:0..Funk.size()-1
+   if eledes.pixels_buffer()[Funk[i]*3] == 0
+	eledes.pixels_buffer()[Funk[i]*3] = 0xaa
+   else
+	eledes.pixels_buffer()[Funk[i]*3] = 0
+   end    
+  end 
+  eledes.show()
+ end
+ def every_second()
+  self.init()
+  if self.year1970 == 1970
+   self.funk()
+  else
+   print(gettime().year + "." + gettime().month + "." + gettime().day)
+   tasmota.remove_driver(cS)
+   eledes.clear()
+   startup()
+  end 
+ end
+end
 
 class clockSeconds
  var sekunden
@@ -199,9 +226,6 @@ class clockSeconds
 	#print("init")
  end 
  def every_second()
-  #var CTime = gettime()
-  #print("SECS " + CTime.secs)
-  # 
   var s = self.sekunden
   if s==59
    self.init()
@@ -214,12 +238,11 @@ class clockSeconds
  end
 end
 
-cS = "irgendwas"
-
-if !persist.has("startup")
+def startup()
+ if !persist.has("startup")
 	cS = clockSeconds()
 	tasmota.add_driver(cS)
-else
+ else
 	if persist.startup=="QLO"
 		cS = clockSeconds()
 		load("testCron")
@@ -228,6 +251,14 @@ else
 		cS = clockSeconds()
 		tasmota.add_driver(cS)
 	end 
-end 	
+        if persist.startup=="SECT"
+            tasmota.remove_cron("cron4clockMinutes")
+            load("onlysecs")
+        end
+ end 	
+end
 
+cS = wait4time()
+tasmota.add_driver(cS)
 
+print("autoexec loaded")

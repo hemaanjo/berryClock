@@ -1,3 +1,4 @@
+print("load Qlock")
 #Masks für QLOCK
 mintext = {0: 'Uhr',5:'fünf nach',10:'zehn nach',15:'viertel nach',20:'zwanzig nach',25:'fünf vor halb',30:'halb',35:'fünf nach halb',40:'zwanzig vor',45:'viertel vor',50:'zehn vor',55:'fünf vor'} 
 hourtext = {0:'zwölf',1:'eins',2:'zwei',3:'drei',4:'vier',5:'fünf',6:'sechs',7:'sieben',8:'acht',9:'neun',10:'zehn',11:'elf'}
@@ -70,7 +71,7 @@ def ledMask(mask)
 	eledes.clear()
 	while i<mask.size()
 		#print(mask[i])
-		eledes.set_pixel_color(mask[i],0x00ff00)
+		eledes.set_pixel_color(mask[i],0x00ff00,persist.allBrightness)
 		eledes.show()
 		tasmota.delay(persist.QLTypeSpeed)
 		i+=1
@@ -80,11 +81,12 @@ end
 def Qlock()
 var lh
 var lm
-if lh!=gettime().hour()%12 || lm!=gettime().min() / 5 * 5
-	ledMask(timemask(gettime().hour()%12,gettime().min() / 5 * 5))
-	lh=gettime().hour()%12 
-	lm=gettime().min() / 5 * 5
+if lh!=persist.hour%12 || lm!=persist.min / 5 * 5
+	ledMask(timemask(persist.hour%12,persist.min / 5 * 5))
+	lh=persist.hour%12 
+	lm=persist.min / 5 * 5
 end 	
 end
 
+print("Qlock loaded")
 
